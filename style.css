@@ -1,0 +1,155 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; font-family: -apple-system, "Segoe UI", "Malgun Gothic", sans-serif; background: #0a0e16; color: #e8edf4; overflow: hidden; }
+#map { position: absolute; inset: 0; }
+#globe { position: absolute; inset: 0; background: #04070d; }   /* 🌐 3D 글로브 전용 캔버스 */
+#globe.hidden { display: none; }
+canvas { outline: none; }
+
+#panel {
+  position: absolute; top: 14px; left: 14px; z-index: 5; width: 320px;
+  background: rgba(14,19,30,.86); backdrop-filter: blur(10px);
+  border: 1px solid rgba(120,150,200,.2); border-radius: 14px; padding: 16px 16px 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.5);
+}
+.drag-handle { cursor: grab; touch-action: none; user-select: none;
+  margin: -4px 0 6px; padding: 6px 0; }
+.drag-handle::before { content: ""; display: block; width: 36px; height: 4px; margin: 0 auto;
+  background: rgba(150,165,190,.35); border-radius: 3px; }
+.drag-handle:active { cursor: grabbing; }
+.drag-handle:active::before { background: rgba(79,195,247,.6); }
+#panel h1 { font-size: 17px; margin: 0 0 2px; }
+#panel .sub { margin: 0 0 12px; font-size: 11.5px; color: #93a4bd; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }   /* 버튼 많은 행은 줄바꿈(세로 찌그러짐 방지) */
+.row label { flex: 1; font-size: 11px; color: #9fb0c9; display: flex; flex-direction: column; gap: 4px; }
+.row label.grow { flex: 1 1 100%; }
+select, input[type=range] { width: 100%; }
+select {
+  background: #18222f; color: #e8edf4; border: 1px solid #2c3a4f;
+  border-radius: 8px; padding: 6px 8px; font-size: 13px;
+}
+input[type=range] { accent-color: #4fc3f7; }
+#hsVal { color: #4fc3f7; font-weight: 600; }
+
+#legend { margin: 6px 0 8px; font-size: 11px; }
+#legend .bar { height: 12px; border-radius: 6px; margin: 4px 0; }
+#legend .ticks { display: flex; justify-content: space-between; color: #93a4bd; }
+.status { font-size: 11px; color: #6f8099; min-height: 14px; }
+
+#timebar {
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  z-index: 5; width: min(760px, 86vw); display: flex; align-items: center; gap: 12px;
+  background: rgba(14,19,30,.86); backdrop-filter: blur(10px);
+  border: 1px solid rgba(120,150,200,.2); border-radius: 30px; padding: 10px 18px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.5);
+}
+#timebar input[type=range] { flex: 1; }
+.drag-handle-dot { cursor: grab; touch-action: none; user-select: none; flex: none;
+  color: #5a6a85; font-size: 16px; line-height: 1; padding: 4px 2px; }
+.drag-handle-dot:active { cursor: grabbing; color: #4fc3f7; }
+#play {
+  width: 38px; height: 38px; border-radius: 50%; border: none; cursor: pointer;
+  background: #4fc3f7; color: #06121c; font-size: 15px; font-weight: 700; flex: none;
+}
+#play.playing { background: #ff7043; color: #1c0a06; }
+.ym { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 15px; min-width: 86px; text-align: right; color: #cfe3ff; }
+
+#detail {
+  position: absolute; top: 14px; right: 14px; z-index: 6; width: 380px; max-height: 92vh; overflow: auto;
+  background: rgba(14,19,30,.93); backdrop-filter: blur(10px);
+  border: 1px solid rgba(120,150,200,.2); border-radius: 14px; padding: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.5);
+}
+#detail.hidden { display: none; }
+#detail h2 { font-size: 16px; margin: 0 28px 8px 0; }
+#closeDetail { position: absolute; top: 12px; right: 12px; background: none; border: none; color: #93a4bd; font-size: 16px; cursor: pointer; }
+.dstat { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 12px; margin-bottom: 10px; }
+.dstat b { color: #4fc3f7; font-variant-numeric: tabular-nums; }
+#chart { width: 100%; height: 280px; }
+
+/* 투자정보 패널(좌측) */
+#invest {
+  position: absolute; left: 14px; bottom: 64px; z-index: 7; width: 420px; max-height: 72vh; overflow: auto;
+  background: rgba(14,19,30,.95); backdrop-filter: blur(10px);
+  border: 1px solid rgba(120,150,200,.25); border-radius: 14px; padding: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.55);
+}
+#invest.hidden { display: none; }
+#invest h2 { font-size: 15px; margin: 0 28px 10px 0; color: #ffd479; }
+#closeInvest { position: absolute; top: 12px; right: 12px; background: none; border: none; color: #93a4bd; font-size: 16px; cursor: pointer; }
+.ipill { font-size: 11.5px; line-height: 1.5; background: rgba(79,195,247,.12); border: 1px solid rgba(79,195,247,.3);
+         border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; color: #cfe8ff; }
+.irow { display: grid; grid-template-columns: 78px 1fr; gap: 8px; font-size: 12px; line-height: 1.5; padding: 5px 0; border-top: 1px solid rgba(120,150,200,.12); }
+.ik { color: #7fb0ff; font-weight: 600; }
+.iv { color: #d6deea; }
+.iv b { color: #ffd479; }
+#investDisc { font-size: 10.5px; color: #8895a8; margin-top: 10px; }
+#investBtn { margin-left: 8px; background: rgba(255,212,121,.15); border: 1px solid rgba(255,212,121,.4);
+             color: #ffd479; border-radius: 8px; padding: 4px 10px; cursor: pointer; font-size: 12px; }
+.hint { font-size: 11px; color: #6f8099; }
+
+.tooltip {
+  position: absolute; z-index: 9; pointer-events: none; padding: 8px 10px;
+  background: rgba(8,12,20,.95); border: 1px solid #2c3a4f; border-radius: 8px;
+  font-size: 12px; line-height: 1.5; max-width: 240px;
+}
+.tooltip.hidden { display: none; }
+.tooltip b { color: #ffd54f; }
+.maplibregl-ctrl-attrib { font-size: 9px; }
+#rentBtn { margin-left: 6px; background: rgba(120,200,140,.15); border: 1px solid rgba(120,200,140,.4);
+           color: #86e0a0; border-radius: 8px; padding: 4px 10px; cursor: pointer; font-size: 12px; }
+#rentBtn.on { background: rgba(120,200,140,.5); color: #eafff0; }
+
+/* 관광지·학교 토글 버튼 */
+#tourBtn, #eduBtn { background: rgba(140,160,255,.12); border: 1px solid rgba(140,160,255,.35);
+  color: #dce4ff; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+#tourBtn.on { background: rgba(255,200,70,.4); color: #fff6dd; border-color: rgba(255,200,70,.6); }
+#eduBtn.on { background: rgba(150,105,245,.45); color: #f0e8ff; border-color: rgba(150,105,245,.65); }
+
+#hospBtn { background: rgba(240,246,252,.10); border: 1px solid rgba(240,120,125,.4);
+  color: #ffe4e6; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+#hospBtn.on { background: rgba(220,40,45,.4); color: #fff; border-color: rgba(240,120,125,.7); }
+
+#mallBtn { background: rgba(240,148,56,.12); border: 1px solid rgba(240,148,56,.4);
+  color: #ffe9d2; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+#mallBtn.on { background: rgba(240,148,56,.45); color: #fff; border-color: rgba(240,168,80,.7); }
+
+#jobsBtn { background: rgba(40,210,245,.10); border: 1px solid rgba(40,210,245,.4);
+  color: #d8f6ff; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+#jobsBtn.on { background: rgba(40,210,245,.4); color: #fff; border-color: rgba(120,225,250,.7); }
+
+#clubBtn { background: rgba(61,153,76,.12); border: 1px solid rgba(61,153,76,.45);
+  color: #d9f5de; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+#clubBtn.on { background: rgba(61,153,76,.45); color: #fff; border-color: rgba(110,200,125,.7); }
+
+#globeBtn { background: rgba(80,150,255,.10); border: 1px solid rgba(80,150,255,.45);
+  color: #d8e8ff; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+#globeBtn.on { background: rgba(80,150,255,.45); color: #fff; border-color: rgba(140,190,255,.75); }
+
+#schedBtn { margin-left: 6px; background: rgba(180,190,205,.10); border: 1px solid rgba(180,190,205,.4);
+  color: #cdd6e4; border-radius: 8px; padding: 4px 10px; cursor: pointer; font-size: 12px; }
+#schedBtn.on { background: rgba(90,200,120,.4); color: #eafff0; border-color: rgba(120,220,150,.7); }
+
+/* 주소·명소 검색(모바일 공용) */
+#searchBox { flex: 1; background: #18222f; color: #ffe9a8; border: 1px solid rgba(255,213,79,.4);
+  border-radius: 9px; padding: 8px 12px; font-size: 13px; }
+#searchBox::placeholder { color: #8a94a8; }
+#searchHits { margin: -4px 0 8px; border: 1px solid rgba(255,213,79,.25); border-radius: 9px;
+  background: #121a26; overflow: hidden; }
+#searchHits.hidden { display: none; }
+#searchHits .srow { padding: 7px 12px; font-size: 12.5px; cursor: pointer;
+  border-top: 1px solid rgba(120,150,200,.08); }
+#searchHits .srow:first-child { border-top: none; }
+#searchHits .srow:hover { background: rgba(255,213,79,.12); }
+#searchHits .srow span { color: #7fa8d9; font-size: 11px; margin-left: 6px; }
+
+/* 모바일(PWA) 대응 */
+@media (max-width: 720px) {
+  #panel { left: 6px; right: 6px; top: 6px; max-width: none; width: auto;
+    max-height: 46vh; overflow-y: auto; font-size: 12px; }
+  #panel h1 { font-size: 15px; }
+  .row { flex-wrap: wrap; gap: 4px; }
+  #detail, #invest { left: 6px; right: 6px; width: auto; max-height: 48vh; overflow-y: auto; }
+  /* 데스크톱 규칙(left:50%+translateX(-50%)+고정폭)이 left/right 6px와 함께 남아있으면
+     막대가 폭의 절반만큼 화면 밖 왼쪽으로 밀려 잘린다(과거 방향 드래그 불가) — 실측 확인 후 수정. */
+  #timebar { left: 6px; right: 6px; width: auto; transform: none; }
+}

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>글로벌 부동산 3D 지표 · deck.gl/WebGL</title>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+<link href="style.css" rel="stylesheet" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0a0e16" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+</head>
+<body>
+<div id="map"></div>
+<div id="globe" class="hidden"></div>
+
+<header id="panel">
+  <div id="panelHandle" class="drag-handle" title="드래그하여 이동"></div>
+  <h1>🌍 글로벌 부동산 3D 지표</h1>
+  <p class="sub">44개국 · 시군구/도시 단위 · 10년치 · 가격→수직 높이 (deck.gl WebGL)</p>
+
+  <div class="row">
+    <input id="searchBox" type="search" autocomplete="off"
+           placeholder="🔍 검색 — 예: 인터로마스 / cgb · 쉼표로 여러 곳 = 비교(인터로마스, 폴랑코)"
+           title="한 곳을 입력하면 이동, 쉼표(,)나 vs 로 여러 곳을 넣으면 후보 비교 — 접근성·장단점·후보 간 거리" />
+  </div>
+  <div id="searchHits" class="hidden"></div>
+
+  <div class="row">
+    <label>권역
+      <select id="view"></select>
+    </label>
+    <button id="userBtn" title="로그인(이용 이력·개인화) — 신규 사용자명은 자동 가입">👤 로그인</button>
+    <button id="investBtn" title="이 국가 부동산 투자 규제·세금(한국국적·미국영주권자 관점)">💰 투자정보</button>
+    <button id="rentBtn" title="매매가 ↔ 월임대료(국가별 임대수익률 추정) 전환">💵 매매</button>
+    <button id="schedBtn" title="백그라운드 데이터 수집 스케줄러(실시간 폴링·export·NAS 백업) 켜기/끄기 — 외부(원격) 접속은 로그인 필요">⚙️ 수집</button>
+  </div>
+
+  <div class="row">
+    <button id="tourBtn" title="주요 관광지 마커(금색)">🏛️ 관광지</button>
+    <button id="eduBtn" title="주요 대학·사립 중고교 학비 막대(보라·핑크) + 장학금(녹색)">🎓 학교·학비</button>
+    <button id="hospBtn" title="주요 병원·의료시설(높이=병상 규모)">🏥 병원</button>
+    <button id="mallBtn" title="대형 쇼핑몰·백화점·마트(크기=연면적)">🛍️ 쇼핑</button>
+    <button id="jobsBtn" title="글로벌 구인(levels.fyi 누적, 높이=공고 수) — resume 프로젝트 연동">💼 구인</button>
+    <button id="clubBtn" title="컨트리클럽·테니스클럽(입회비·연회비·가입조건)">⛳ 클럽</button>
+    <button id="airBtn" title="공항·항공 노선(허브 앤 스포크 — 간선=금색·스포크=하늘색)">✈️ 공항</button>
+    <button id="bikeBtn" title="멕시코시티 자전거 루트 — 상시 자전거도로(청록) + 일요일 차 없는 거리 Muévete en Bici(주황, 08:00~14:00)">🚲 자전거</button>
+    <button id="globeBtn" title="3D 글로브(실험적): 평면 지도 ↔ 구면 지구 — 드래그로 지구 굴리기, 줌인하면 상세 내비 지도로 자동 전환 (URL ?globe=1)">🌐 글로브</button>
+  </div>
+
+  <div class="row">
+    <label>자산유형
+      <select id="ptype"></select>
+    </label>
+    <label>단위
+      <select id="level">
+        <option value="dong">동</option>
+        <option value="sigungu" selected>시군구</option>
+        <option value="sido">시도</option>
+        <option value="usstate">주(US)</option>
+        <option value="county">카운티(US)</option>
+        <option value="mxstate">주(MX)</option>
+        <option value="mxmuni">자치단체(MX)</option>
+        <option value="alcaldia">알칼디아(MX)</option>
+        <option value="caprov">주(CA)</option>
+        <option value="cacity">도시(CA)</option>
+        <option value="ukregion">지역(UK)</option>
+        <option value="ukcity">도시(UK)</option>
+        <option value="destate">주(DE)</option>
+        <option value="decity">도시(DE)</option>
+        <option value="esregion">자치주(ES)</option>
+        <option value="escity">도시(ES)</option>
+        <option value="jpref">도도부현(JP)</option>
+        <option value="jpcity">시구정촌(JP)</option>
+        <option value="cnprov">성(CN)</option>
+        <option value="cncity">지급시(CN)</option>
+        <option value="codept">주(CO)</option>
+        <option value="cocity">시군(CO)</option>
+        <option value="ptdist">지구(PT)</option>
+        <option value="austate">주(AU)</option>
+        <option value="nzregion">지역(NZ)</option>
+        <option value="sgreg">권역(SG)</option>
+        <option value="twcounty">현/시(TW)</option>
+        <option value="brstate">주(BR)</option>
+        <option value="arprov">주(AR)</option>
+        <option value="ptcity">시군(PT)</option>
+        <option value="aucity">LGA(AU)</option>
+        <option value="brcity">시(BR)</option>
+        <option value="arcity">군(AR)</option>
+        <option value="instate">주(IN)</option>
+        <option value="rufed">연방주체(RU)</option>
+        <option value="aeemirate">토후국(AE)</option>
+        <option value="saregion">지방(SA)</option>
+        <option value="trprov">주(TR)</option>
+        <option value="itprov">도(IT)</option>
+        <option value="secounty">주(SE)</option>
+        <option value="chcanton">칸톤(CH)</option>
+        <option value="frdept">도(FR)</option>
+        <option value="ildistrict">구(IL)</option>
+        <option value="mystate">주(MY)</option>
+        <option value="guam">괌(GU)</option>
+        <option value="cnmi">사이판(MP)</option>
+        <option value="nlprov">주(NL)</option>
+        <option value="idprov">주(ID)</option>
+        <option value="thprov">주(TH)</option>
+        <option value="phprov">주(PH)</option>
+        <option value="plprov">주(PL)</option>
+        <option value="atstate">주(AT)</option>
+        <option value="nocounty">주(NO)</option>
+        <option value="zaprov">주(ZA)</option>
+        <option value="clregion">주(CL)</option>
+        <option value="clcity">시·comuna(CL)</option>
+        <option value="peregion">주(PE)</option>
+        <option value="pecity">시·provincia(PE)</option>
+        <option value="ecregion">주(EC)</option>
+        <option value="boregion">주(BO)</option>
+        <option value="pyregion">주(PY)</option>
+        <option value="uyregion">주(UY)</option>
+        <option value="colonia">동네(MX)</option>
+        <option value="all">전체</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="row">
+    <label>지표
+      <select id="metric">
+        <option value="ppm2" selected>평단가 (만원/㎡)</option>
+        <option value="count">거래량 (건)</option>
+        <option value="jeonse">전세가율 (%)</option>
+      </select>
+    </label>
+    <label>평형(가족)
+      <select id="size"></select>
+    </label>
+  </div>
+
+  <div class="row">
+    <label class="grow">높이 배율 <span id="hsVal"></span>
+      <input type="range" id="hscale" min="3" max="60" value="18" step="1" />
+    </label>
+  </div>
+
+  <div class="row">
+    <label class="grow">막대 굵기 <span id="wsVal">×1.0</span>
+      <input type="range" id="wscale" min="2" max="25" value="10" step="1" />
+    </label>
+  </div>
+
+  <div class="row">
+    <label class="grow">💼 JD 막대 높이 <span id="jdhVal">×1.0</span>
+      <input type="range" id="jdh" min="2" max="40" value="10" step="1" />
+    </label>
+  </div>
+
+  <div class="row">
+    <label class="grow">💼 JD 막대 굵기 <span id="jdwVal">×1.0</span>
+      <input type="range" id="jdw" min="2" max="40" value="10" step="1" />
+    </label>
+  </div>
+
+  <div id="legend"></div>
+  <div id="nasLine" class="status" style="opacity:.75"></div>
+  <div id="status" class="status"></div>
+</header>
+
+<footer id="timebar">
+  <span id="timebarHandle" class="drag-handle-dot" title="드래그하여 이동">⠿</span>
+  <button id="play">▶</button>
+  <input type="range" id="time" min="0" max="0" value="0" step="1" />
+  <span id="ymLabel" class="ym">—</span>
+</footer>
+
+<aside id="detail" class="hidden">
+  <button id="closeDetail">✕</button>
+  <h2 id="detailName">지역</h2>
+  <div id="detailStat" class="dstat"></div>
+  <div id="chart"></div>
+  <p class="hint">컬럼을 클릭하면 해당 지역의 시간별 가격 그래프가 표시됩니다.</p>
+</aside>
+
+<aside id="invest" class="hidden">
+  <button id="closeInvest">✕</button>
+  <h2 id="investName">투자정보</h2>
+  <div id="investBody"></div>
+  <p class="hint" id="investDisc"></p>
+</aside>
+
+<div id="tooltip" class="tooltip hidden"></div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/deck.gl@9.0.36/dist.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script>window.RE3D_STATIC=true</script>
+<script src="static_shim.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+{"sizes":[{"name":"초소형(원룸)","pyeong":9,"m2":30,"family":"1인","factor":1.18},{"name":"소형","pyeong":16,"m2":53,"family":"1~2인","factor":1.07},{"name":"중형","pyeong":24,"m2":79,"family":"3인","factor":1.0},{"name":"중대형","pyeong":32,"m2":106,"family":"4인","factor":0.96},{"name":"대형","pyeong":43,"m2":142,"family":"5인+","factor":0.92}],"default":2}
